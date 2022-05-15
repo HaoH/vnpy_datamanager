@@ -184,19 +184,21 @@ class ManagerEngine(BaseEngine):
         self,
         symbol: str,
         exchange: Exchange,
-        interval: str,
+        interval: Interval,
         start: datetime,
-        output: Callable
+        output: Callable,
+        end=None
     ) -> int:
         """
         Query bar data from datafeed.
         """
+        end = end if end else datetime.now(DB_TZ)
         req: HistoryRequest = HistoryRequest(
             symbol=symbol,
             exchange=exchange,
-            interval=Interval(interval),
+            interval=interval,
             start=start,
-            end=datetime.now(DB_TZ)
+            end=end
         )
 
         vt_symbol: str = f"{symbol}.{exchange.value}"
@@ -222,16 +224,18 @@ class ManagerEngine(BaseEngine):
         symbol: str,
         exchange: Exchange,
         start: datetime,
-        output: Callable
+        output: Callable,
+        end=None
     ) -> int:
         """
         Query tick data from datafeed.
         """
+        end = end if end else datetime.now(DB_TZ)
         req: HistoryRequest = HistoryRequest(
             symbol=symbol,
             exchange=exchange,
             start=start,
-            end=datetime.now(DB_TZ)
+            end=end
         )
 
         data: List[TickData] = self.datafeed.query_tick_history(req, output)
