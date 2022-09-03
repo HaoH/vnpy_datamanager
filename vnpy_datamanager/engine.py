@@ -9,6 +9,8 @@ from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
 from vnpy.trader.utility import ZoneInfo
 
+from ex_vnpy.object import BasicStockData
+
 APP_NAME = "DataManager"
 
 
@@ -245,3 +247,6 @@ class ManagerEngine(BaseEngine):
             return (len(data))
 
         return 0
+
+    def get_stocks_list(self) -> List[BasicStockData]:
+        return self.database.get_basic_stock_data()
