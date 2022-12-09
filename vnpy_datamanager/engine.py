@@ -1,17 +1,14 @@
 import csv
 from datetime import datetime
-<<<<<<< HEAD
-from typing import List, Optional, Callable
-=======
-from typing import List, Optional, Dict
->>>>>>> 2e98ab7 (add market)
+from typing import List, Optional, Callable, Dict
 
+from pandas import DataFrame
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
 from vnpy.trader.constant import Interval, Exchange, Market
 from vnpy.trader.object import BarData, TickData, ContractData, HistoryRequest
 from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
-from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
-from vnpy.trader.utility import ZoneInfo
+from vnpy.trader.datafeed import BaseDatafeed, get_datafeed, get_datafeeds
+from vnpy.trader.utility import ZoneInfo, exchange_to_market
 
 from ex_vnpy.object import BasicStockData
 
@@ -31,6 +28,7 @@ class ManagerEngine(BaseEngine):
 
         self.database: BaseDatabase = get_database()
         self.datafeed: BaseDatafeed = get_datafeed()
+        self.datafeeds: Dict[Market, BaseDatafeed] = get_datafeeds()
 
     def import_data_from_csv(
         self,
@@ -217,7 +215,8 @@ class ManagerEngine(BaseEngine):
             )
         # Otherwise use datafeed to query data
         else:
-            data: List[BarData] = self.datafeed.query_bar_history(req, output)
+            datafeed = self.get_datafeed_by_exchange(exchange)
+            data: List[BarData] = datafeed.query_bar_history(req, output)
 
         if data:
             self.database.save_bar_data(data)
@@ -244,7 +243,8 @@ class ManagerEngine(BaseEngine):
             end=end
         )
 
-        data: List[TickData] = self.datafeed.query_tick_history(req, output)
+        datafeed = self.get_datafeed_by_exchange(exchange)
+        data: List[TickData] = datafeed.query_tick_history(req, output)
 
         if data:
             self.database.save_tick_data(data)
@@ -254,3 +254,16 @@ class ManagerEngine(BaseEngine):
 
     def get_stocks_list(self) -> Dict[Market, List[BasicStockData]]:
         return self.database.get_basic_stock_data()
+
+    def save_stock_data(self, df: DataFrame, symbol: str, exchange: Exchange, interval: Interval, start: datetime, end: datetime):
+        datafeed = self.get_datafeed_by_exchange(exchange)
+        data = datafeed.handle_bar_data(df, symbol, exchange, interval, start, end)
+        if data and len(data) > 0:
+            self.database.save_bar_data(data)
+
+    def get_datafeed_by_market(self, market: Market):
+        return self.datafeeds[market]
+
+    def get_datafeed_by_exchange(self, exchange: Exchange):
+        market = exchange_to_market(exchange)
+        return self.datafeeds[market]
