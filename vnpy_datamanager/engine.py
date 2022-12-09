@@ -1,9 +1,13 @@
 import csv
 from datetime import datetime
+<<<<<<< HEAD
 from typing import List, Optional, Callable
+=======
+from typing import List, Optional, Dict
+>>>>>>> 2e98ab7 (add market)
 
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
-from vnpy.trader.constant import Interval, Exchange
+from vnpy.trader.constant import Interval, Exchange, Market
 from vnpy.trader.object import BarData, TickData, ContractData, HistoryRequest
 from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed
@@ -248,5 +252,5 @@ class ManagerEngine(BaseEngine):
 
         return 0
 
-    def get_stocks_list(self) -> List[BasicStockData]:
+    def get_stocks_list(self) -> Dict[Market, List[BasicStockData]]:
         return self.database.get_basic_stock_data()
