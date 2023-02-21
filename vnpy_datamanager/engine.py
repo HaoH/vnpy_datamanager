@@ -190,7 +190,7 @@ class ManagerEngine(BaseEngine):
         exchange: Exchange,
         interval: Interval,
         start: datetime,
-        output: Callable,
+        output: Callable=print,
         end=None
     ) -> int:
         """
