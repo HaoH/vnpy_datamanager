@@ -10,7 +10,7 @@ from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed, get_datafeeds
 from vnpy.trader.utility import ZoneInfo, exchange_to_market
 
-from ex_vnpy.object import BasicStockData
+from ex_vnpy.object import BasicStockData, BasicIndexData
 
 APP_NAME = "DataManager"
 
@@ -146,9 +146,9 @@ class ManagerEngine(BaseEngine):
         except PermissionError:
             return False
 
-    def get_bar_overview(self) -> List[BarOverview]:
+    def get_bar_overview(self, type: str = "CS") -> List[BarOverview]:
         """"""
-        return self.database.get_bar_overview()
+        return self.database.get_bar_overview(type)
 
     def load_bar_data(
         self,
@@ -160,6 +160,25 @@ class ManagerEngine(BaseEngine):
     ) -> List[BarData]:
         """"""
         bars: List[BarData] = self.database.load_bar_data(
+            symbol,
+            exchange,
+            interval,
+            start,
+            end
+        )
+
+        return bars
+
+    def load_index_bar_data(
+        self,
+        symbol: str,
+        exchange: Exchange,
+        interval: Interval,
+        start: datetime,
+        end: datetime
+    ) -> List[BarData]:
+        """"""
+        bars: List[BarData] = self.database.load_index_bar_data(
             symbol,
             exchange,
             interval,
@@ -190,8 +209,9 @@ class ManagerEngine(BaseEngine):
         exchange: Exchange,
         interval: Interval,
         start: datetime,
-        output: Callable=print,
-        end=None
+        end=None,
+        type="CS",
+        output: Callable=print
     ) -> int:
         """
         Query bar data from datafeed.
@@ -205,24 +225,17 @@ class ManagerEngine(BaseEngine):
             end=end
         )
 
-        vt_symbol: str = f"{symbol}.{exchange.value}"
-        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
-
-        # If history data provided in gateway, then query
-        if contract and contract.history_data:
-            data: List[BarData] = self.main_engine.query_history(
-                req, contract.gateway_name
-            )
-        # Otherwise use datafeed to query data
-        else:
-            datafeed = self.get_datafeed_by_exchange(exchange)
-            data: List[BarData] = datafeed.query_bar_history(req, output)
-
+        datafeed = self.get_datafeed_by_exchange(exchange)
+        data: List[BarData] = datafeed.query_bar_history(req, output)
         if data:
-            self.database.save_bar_data(data)
-            return (len(data))
+            if type == 'CS':
+                self.database.save_bar_data(data)
+            elif type == 'INDX':
+                self.database.save_index_bar_data(data)
+            else:
+                print(f"[WARINING] type: {type} not support")
 
-        return 0
+        return (len(data))
 
     def download_tick_data(
         self,
@@ -255,11 +268,20 @@ class ManagerEngine(BaseEngine):
     def get_stocks_list(self) -> Dict[Market, List[BasicStockData]]:
         return self.database.get_basic_stock_data()
 
+    def get_index_list(self) -> Dict[Market, List[BasicIndexData]]:
+        return self.database.get_basic_index_data()
+
     def save_stock_data(self, df: DataFrame, symbol: str, exchange: Exchange, interval: Interval, start: datetime, end: datetime):
         datafeed = self.get_datafeed_by_exchange(exchange)
         data = datafeed.handle_bar_data(df, symbol, exchange, interval, start, end)
         if data and len(data) > 0:
             self.database.save_bar_data(data)
+
+    def save_index_data(self, df: DataFrame, symbol: str, exchange: Exchange, interval: Interval, start: datetime, end: datetime):
+        datafeed = self.get_datafeed_by_exchange(exchange)
+        data = datafeed.handle_bar_data(df, symbol, exchange, interval, start, end)
+        if data and len(data) > 0:
+            self.database.save_index_bar_data(data)
 
     def get_datafeed_by_market(self, market: Market):
         return self.datafeeds[market]
