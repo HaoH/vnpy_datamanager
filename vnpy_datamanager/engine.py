@@ -4,7 +4,7 @@ from typing import List, Optional, Callable, Dict
 
 from pandas import DataFrame
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
-from vnpy.trader.constant import Interval, Exchange, Market
+from vnpy.trader.constant import Interval, Exchange, Market, Conflict
 from vnpy.trader.object import BarData, TickData, ContractData, HistoryRequest
 from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed, get_datafeeds
@@ -211,6 +211,7 @@ class ManagerEngine(BaseEngine):
         start: datetime,
         end=None,
         type="CS",
+        conflict=Conflict.REPLACE,
         output: Callable=print
     ) -> int:
         """
@@ -229,9 +230,9 @@ class ManagerEngine(BaseEngine):
         data: List[BarData] = datafeed.query_bar_history(req, output)
         if data:
             if type == 'CS':
-                self.database.save_bar_data(data)
+                self.database.save_bar_data(data, conflict)
             elif type == 'INDX':
-                self.database.save_index_bar_data(data)
+                self.database.save_index_bar_data(data, conflict)
             else:
                 print(f"[WARINING] type: {type} not support")
 
@@ -289,3 +290,12 @@ class ManagerEngine(BaseEngine):
     def get_datafeed_by_exchange(self, exchange: Exchange):
         market = exchange_to_market(exchange)
         return self.datafeeds[market]
+
+    def log_operation(self, type: str, op_status: str, op_time: datetime, op_info: str = ""):
+        self.database.save_operation_log(type, op_status, op_time, op_info)
+
+    def save_capital_data(self, capital_data: List):
+        self.database.save_capital_data(capital_data)
+
+    def save_capital_flat_data(self, capital_data: List):
+        self.database.save_capital_flat_data(capital_data)
