@@ -1,5 +1,6 @@
 import csv
-from datetime import datetime
+from datetime import datetime, date
+from calendar import monthrange
 from typing import List, Optional, Callable, Dict
 
 from pandas import DataFrame
@@ -299,3 +300,11 @@ class ManagerEngine(BaseEngine):
 
     def save_capital_flat_data(self, capital_data: List):
         self.database.save_capital_flat_data(capital_data)
+
+    def get_capital_days_by_month(self, month_first_day: date):
+        _, days_in_month = monthrange(month_first_day.year, month_first_day.month)
+        month_last_day = date(month_first_day.year, month_first_day.month, days_in_month)
+        return self.database.get_capital_days(month_first_day, month_last_day)
+
+    def get_latest_statistic_date(self):
+        return self.database.get_latest_statistic_date()
