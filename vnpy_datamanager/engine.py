@@ -311,3 +311,6 @@ class ManagerEngine(BaseEngine):
 
     def get_latest_op_info(self, op_type):
         return self.database.get_latest_op_info(op_type)
+
+    def get_capital_data_by_month(self, month) -> List:
+        return self.database.get_capital_data_by_month(month)
