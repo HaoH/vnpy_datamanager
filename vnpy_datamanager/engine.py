@@ -1,7 +1,7 @@
 import csv
 from datetime import datetime, date
 from calendar import monthrange
-from typing import List, Optional, Callable, Dict
+from typing import List, Optional, Callable, Dict, Union
 
 from pandas import DataFrame
 from vnpy.trader.engine import BaseEngine, MainEngine, EventEngine
@@ -147,9 +147,11 @@ class ManagerEngine(BaseEngine):
         except PermissionError:
             return False
 
-    def get_bar_overview(self, type: str = "CS") -> List[BarOverview]:
-        """"""
-        return self.database.get_bar_overview(type)
+    def get_bar_overview(self, symbol_id: int = None, symbol: str = None, stype: str = 'CS') -> List[BarOverview]:
+        if symbol_id:
+            return self.database.get_bar_overview(symbol_id=symbol_id)
+        else:
+            return self.database.get_bar_overview(symbol=symbol, stype=stype)
 
     def load_bar_data(
         self,
@@ -161,25 +163,6 @@ class ManagerEngine(BaseEngine):
     ) -> List[BarData]:
         """"""
         bars: List[BarData] = self.database.load_bar_data(
-            symbol,
-            exchange,
-            interval,
-            start,
-            end
-        )
-
-        return bars
-
-    def load_index_bar_data(
-        self,
-        symbol: str,
-        exchange: Exchange,
-        interval: Interval,
-        start: datetime,
-        end: datetime
-    ) -> List[BarData]:
-        """"""
-        bars: List[BarData] = self.database.load_index_bar_data(
             symbol,
             exchange,
             interval,
@@ -211,7 +194,6 @@ class ManagerEngine(BaseEngine):
         interval: Interval,
         start: datetime,
         end=None,
-        type="CS",
         conflict=Conflict.REPLACE,
         output: Callable=print
     ) -> int:
@@ -230,14 +212,9 @@ class ManagerEngine(BaseEngine):
         datafeed = self.get_datafeed_by_exchange(exchange)
         data: List[BarData] = datafeed.query_bar_history(req, output)
         if data:
-            if type == 'CS':
-                self.database.save_bar_data(data, conflict)
-            elif type == 'INDX':
-                self.database.save_index_bar_data(data, conflict)
-            else:
-                print(f"[WARINING] type: {type} not support")
+            self.database.save_bar_data(data, conflict=conflict)
 
-        return (len(data))
+        return len(data)
 
     def download_tick_data(
         self,
@@ -267,23 +244,17 @@ class ManagerEngine(BaseEngine):
 
         return 0
 
-    def get_stocks_list(self) -> Dict[Market, List[BasicStockData]]:
-        return self.database.get_basic_stock_data()
+    def get_stocks_list(self, markets: List[Market]) -> Dict[Market, List[BasicStockData]]:
+        return self.database.get_basic_stock_data(markets)
 
-    def get_index_list(self) -> Dict[Market, List[BasicIndexData]]:
-        return self.database.get_basic_index_data()
+    def get_index_list(self, markets: List[Market]) -> Dict[Market, List[BasicIndexData]]:
+        return self.database.get_basic_index_data(markets)
 
-    def save_stock_data(self, df: DataFrame, symbol: str, exchange: Exchange, interval: Interval, start: datetime, end: datetime):
+    def save_bar_data(self, df: DataFrame, symbol: str, exchange: Exchange, interval: Interval, start: datetime, end: datetime):
         datafeed = self.get_datafeed_by_exchange(exchange)
         data = datafeed.handle_bar_data(df, symbol, exchange, interval, start, end)
         if data and len(data) > 0:
             self.database.save_bar_data(data)
-
-    def save_index_data(self, df: DataFrame, symbol: str, exchange: Exchange, interval: Interval, start: datetime, end: datetime):
-        datafeed = self.get_datafeed_by_exchange(exchange)
-        data = datafeed.handle_bar_data(df, symbol, exchange, interval, start, end)
-        if data and len(data) > 0:
-            self.database.save_index_bar_data(data)
 
     def get_datafeed_by_market(self, market: Market):
         return self.datafeeds[market]
