@@ -285,3 +285,6 @@ class ManagerEngine(BaseEngine):
 
     def get_capital_data_by_month(self, month) -> List:
         return self.database.get_capital_data_by_month(month)
+
+    def get_capital_flat_data_by_symbol(self, symbol_id, start_dt: datetime = None, end_dt: datetime = None) -> List:
+        return self.database.get_capital_flat_data_by_symbol(symbol_id, start_dt, end_dt)
