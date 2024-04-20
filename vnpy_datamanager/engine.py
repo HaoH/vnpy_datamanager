@@ -11,7 +11,7 @@ from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed, get_datafeeds
 from vnpy.trader.utility import ZoneInfo, exchange_to_market
 
-from ex_vnpy.object import BasicStockData, BasicIndexData
+from ex_vnpy.object import BasicStockData, BasicIndexData, ExBarData, SharesData
 
 APP_NAME = "DataManager"
 
@@ -160,9 +160,9 @@ class ManagerEngine(BaseEngine):
         interval: Interval,
         start: datetime,
         end: datetime
-    ) -> List[BarData]:
+    ) -> List[ExBarData]:
         """"""
-        bars: List[BarData] = self.database.load_bar_data(
+        bars: List[ExBarData] = self.database.load_ex_bar_data(
             symbol,
             exchange,
             interval,
@@ -288,3 +288,44 @@ class ManagerEngine(BaseEngine):
 
     def get_capital_flat_data_by_symbol(self, symbol_id, start_dt: datetime = None, end_dt: datetime = None) -> List:
         return self.database.get_capital_flat_data_by_symbol(symbol_id, start_dt, end_dt)
+
+    def download_shares(
+            self,
+            symbol: str,
+            exchange: Exchange,
+            start: datetime,
+            end=None,
+            conflict=Conflict.REPLACE,
+            output: Callable=print
+    ) -> int:
+        """
+        Query bar data from datafeed.
+        """
+        vt_symbol = f"{symbol}.{exchange.value}"
+        end = end if end else datetime.now(DB_TZ)
+        datafeed = self.get_datafeed_by_exchange(exchange)
+        data, change_starts = datafeed.query_shares_history([vt_symbol], start, end, output)
+        if data:
+            self.database.save_shares_data(data, change_starts, conflict=conflict)
+
+        return len(data)
+
+    def download_shares_batch(
+            self,
+            market: Market,
+            stocks: List[str],
+            start: datetime,
+            end=None,
+            conflict=Conflict.REPLACE,
+            output: Callable=print
+    ) -> int:
+        """
+        Query bar data from datafeed.
+        """
+        end = end if end else datetime.now(DB_TZ)
+        datafeed = self.get_datafeed_by_market(market)
+        data, change_starts = datafeed.query_shares_history(stocks, start, end, output)
+        if data:
+            self.database.save_shares_data(data, change_starts, conflict=conflict)
+
+        return len(data)
