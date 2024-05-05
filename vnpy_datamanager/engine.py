@@ -316,7 +316,7 @@ class ManagerEngine(BaseEngine):
             stocks: List[str],
             start: datetime,
             end=None,
-            conflict=Conflict.REPLACE,
+            conflict=Conflict.IGNORE,
             output: Callable=print
     ) -> int:
         """
