@@ -329,3 +329,6 @@ class ManagerEngine(BaseEngine):
             self.database.save_shares_data(data, change_starts, conflict=conflict)
 
         return len(data)
+
+    def close(self):
+        self.main_engine.close()
