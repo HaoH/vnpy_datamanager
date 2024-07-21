@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from calendar import monthrange
 from typing import List, Optional, Callable, Dict, Union
 
@@ -11,7 +11,7 @@ from vnpy.trader.database import BaseDatabase, get_database, BarOverview, DB_TZ
 from vnpy.trader.datafeed import BaseDatafeed, get_datafeed, get_datafeeds
 from vnpy.trader.utility import ZoneInfo, exchange_to_market
 
-from ex_vnpy.object import BasicStockData, BasicIndexData, ExBarData, SharesData
+from ex_vnpy.object import BasicStockData, BasicIndexData, ExBarData, SharesData, DailyStatData
 
 APP_NAME = "DataManager"
 
@@ -172,6 +172,19 @@ class ManagerEngine(BaseEngine):
 
         return bars
 
+    def load_daily_stat_data(self, interval: Interval, start_dt: datetime, end_dt: datetime, symbol: str = None, exchange: Exchange = None):
+        bars: List[DailyStatData] = self.database.load_daily_stat_data(
+            interval,
+            start_dt,
+            end_dt,
+            symbol=symbol,
+            exchange=exchange,
+            stype="CS"
+        )
+
+        return bars
+
+
     def delete_bar_data(
         self,
         symbol: str,
@@ -276,6 +289,11 @@ class ManagerEngine(BaseEngine):
         _, days_in_month = monthrange(month_first_day.year, month_first_day.month)
         month_last_day = date(month_first_day.year, month_first_day.month, days_in_month)
         return self.database.get_capital_days(month_first_day, month_last_day)
+
+    def get_auction_days_by_month(self, month_first_day: date):
+        _, days_in_month = monthrange(month_first_day.year, month_first_day.month)
+        month_last_day = date(month_first_day.year, month_first_day.month, days_in_month)
+        return self.database.get_auction_days(month_first_day, month_last_day)
 
     def get_latest_statistic_date(self):
         return self.database.get_latest_statistic_date()
